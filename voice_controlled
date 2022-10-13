@@ -1,0 +1,172 @@
+#main.py
+import RPi.GPIO as gpio
+import time
+import sys
+import Tkinter as tk
+from sonar import distance
+import speech_recognition as sr
+def init():
+    gpio.setmode(gpio.BOARD)
+    gpio.setup(7, gpio.OUT)
+    gpio.setup(11, gpio.OUT)
+    gpio.setup(13, gpio.OUT)
+    gpio.setup(15, gpio.OUT)
+
+def reverse(tf):
+    gpio.output(7, False)
+    gpio.output(11, True)
+    gpio.output(13, False)
+    gpio.output(15, True)
+    time.sleep(tf)
+    
+def forward(tf):
+    gpio.output(7, True)
+    gpio.output(11, False)
+    gpio.output(13, True)
+    gpio.output(15, False)
+    time.sleep(tf)
+    
+def turn_right(tf):
+    gpio.output(7, True)
+    gpio.output(11, False)
+    gpio.output(13, False)
+    gpio.output(15, True)
+    time.sleep(tf)
+    
+def turn_left(tf):
+    gpio.output(7, False)
+    gpio.output(11, True)
+    gpio.output(13, True)
+    gpio.output(15, False)
+    time.sleep(tf)
+
+def stop(tf):
+    gpio.output(7, False)
+    gpio.output(11, False)
+    gpio.output(13, False)
+    gpio.output(15, False)
+    time.sleep(tf)
+    gpio.cleanup()
+#controllong using keyboard
+def key_input(event):
+    init()
+    print "Key:", event.char
+    key_press = event.char
+    sleep_time = 0.060
+    
+    if key_press.lower() == 'w':
+        check_front()
+        forward(sleep_time)
+    elif key_press.lower() == 's':
+        check_front()
+        reverse(sleep_time)
+    elif key_press.lower() == 'a':
+        check_front()
+        turn_left(sleep_time)
+    elif key_press.lower() == 'd':
+        check_front()
+        turn_right(sleep_time)
+    elif key_press.lower() == 'q':
+        check_front()
+        pivot_left(sleep_time)
+    elif key_press.lower() == 'e':
+        check_front()
+        pivot_right(sleep_time)
+    else:
+        pass
+
+    curDis = distance("cm")
+    print("Distance:", curDis)
+    
+    if curDis <15:
+        init()
+        reverse(0.5)
+
+command = tk.TK()
+command.bind('<keypress>', key_input)
+command.mainloop()
+
+#sonar.py
+import RPi.GPIO as gpio
+import time
+
+def distance(measure='cm'):
+    gpio.setmode(gpio.BOARD)
+    gpio.setup(12, gpio.OUT)
+    gpio.setup(16, gpio.IN)
+  
+    time.sleep(0.3)
+    gpio.ouput(12, True)
+    time.sleep(0.00001)
+    
+    gpio.output(12, False)
+    while gpio.input(16) == 0:
+        nosig = time.time()
+    
+    while gpio.input(16) == 1:
+        sig = time.time()
+    
+    tl = sig - nosig
+    
+    if measure == 'cm':
+        distance = tl / 0.000058
+    elif measure == 'in:
+        distance = tl / 0.000148
+    else:
+        print('Improper choice of measurement: in or cm')
+        distance = None
+    
+    gpio.cleanup()
+    return distance
+  
+print(distance('cm'))
+    
+#voice.py if u need to run car based on voice we can palace place this code in controlling using keyboard use can phrases also
+
+
+
+listin=true
+while listen:
+ 
+ r = sr.Recognizer()
+ with sr.Microphone() as source:               
+     audio = r.listen(source)                   
+
+ try:
+     a=r.recognize(audio)
+     print("You said " + a)    
+ except LookupError:                            
+     print("Could not understand audio")
+  if  'w' in a:
+        check_front()
+        forward(sleep_time)
+    elif  's' in a:
+        check_front()
+        reverse(sleep_time)
+    elif  'a' in a:
+        check_front()
+        turn_left(sleep_time)
+    elif 'd' in a:
+        check_front()
+        turn_right(sleep_time)
+    elif 'q' in a:
+        check_front()
+        pivot_left(sleep_time)
+    elif'e' in a:
+        check_front()
+        pivot_right(sleep_time)
+    else:
+        pass
+
+    curDis = distance("cm")
+    print("Distance:", curDis)
+    
+    if curDis <15:
+        init()
+        reverse(0.5)
+
+# also if u need camera access camera excute this python file and open vlc and select network stream and enter ip of raspi
+#cam.py
+raspivid -o - -t 0 -hf -w 800 -h 400 -fps 24 |cvlc -vvv stream:///dev/stdin --sout '#standard{access=http,mux=ts,dst=:8160}' :demux=h264
+
+#If you need to vertically flip the video, do -vf
